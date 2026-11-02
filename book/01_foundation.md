@@ -8,31 +8,34 @@ Before you deploy any code, you need a secure environment. This section uses an 
 
 By the end of this section, you will have a server running Ubuntu 24.04 LTS, accessed securely via SSH keys, with password authentication completely disabled.
 
-> [!TIP]
-> Prefer video? Watch this section walkthrough: [https://www.youtube.com/watch?v=e7Tz_YRfoCc](https://www.youtube.com/watch?v=e7Tz_YRfoCc)
-
-<!-- This comment is here to satisfy the MD028 rule -->
-
 > [!IMPORTANT]
 > Throughout this guide, you will see text inside angle brackets like `<your_username>` or `<your_key_name>`. These are **placeholders**. You must replace them with your actual values and **remove the brackets** when running the commands.
 
 ### Order an OVHcloud VPS
 
-In this book, we use an [OVHcloud VPS](https://www.ovhcloud.com/en/vps/) to host the web application. Create an OVHcloud account, then order a VPS with Ubuntu 24.04 LTS. OVHcloud VPS plans, available locations, prices, and included storage vary by region and offer, so choose a plan that fits your workload rather than relying on a fixed price from another provider.
+In this book, we use an [OVHcloud VPS](https://www.ovhcloud.com/en/vps/) to host the web application. Create an OVHcloud account, then order a VPS with Ubuntu 24.04 LTS if that image is available for your offer and region. OVHcloud VPS plans, available locations, prices, and included storage vary by region and offer, so choose a plan that fits your workload rather than relying on a fixed price from another provider.
 
 Choose a location geographically near you or your target users. I live in Morocco, so I would choose a nearby European location if it is available for the selected plan.
 
 Choose a VPS plan with enough RAM, disk space, and CPU cores for the application. The plan names and resource bundles differ from DigitalOcean’s shared/dedicated Droplet sizes. OVHcloud lets you upgrade resources and add disks through the control panel, but available options depend on the VPS range and model, and some features are unavailable in Local Zones. Backup coverage also varies by offer, so review the current [resource upgrade options](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/upgrade-resources) and [VPS management and backup details](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel) before ordering.
 
-For the current service management steps, see [Getting started with a VPS](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/starting-with-a-vps) and [VPS management from the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel). In the control panel, VPS services are listed under **Bare Metal Cloud → Virtual private servers**; there is no need to create a DigitalOcean-style project first.
+After ordering, open the OVHcloud Control Panel and go to **Bare Metal Cloud → Virtual private servers**. Select your VPS. The **Home** tab shows the service status, operating system, location, and configuration. In the **IP** section, find the main public IPv4 address. The control panel does not use a DigitalOcean-style project step. For current interface details, see [Getting started with a VPS](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/starting-with-a-vps) and [VPS management from the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel).
 
 ### Configure authentication
 
-This is a critical security step. You can access your server using a **password** or an **SSH key**.
+This section walks through the OVHcloud-specific access steps in order:
 
-OVHcloud's documented first Linux login uses the account named for the selected operating system (for Ubuntu, `ubuntu`) and a temporary password delivered through a secure link. This differs from DigitalOcean's flow, where you attach a key while creating the Droplet and connect as `root`. On first login, change the temporary password, reconnect with the new password, and install your public key for the `ubuntu` account. After that, continue with key-based SSH access.
+1. Order an Ubuntu VPS and note the public IPv4 address, OS username, and temporary password from OVHcloud.
+2. Create an SSH key on your computer.
+3. Sign in once with the temporary password, change it, and reconnect.
+4. Install your public key on the `ubuntu` account and confirm key-based login.
+5. Create your named administrator account, then disable root and password SSH login.
 
-**Always use an SSH key.** Passwords are vulnerable to brute-force attacks, whereas SSH keys are significantly more secure. Think of it like a real lock and key:
+The steps below explain each action. The first Linux login uses a **password**. After setup, use an **SSH key**.
+
+OVHcloud creates a login account based on the selected operating system. For Ubuntu, the account is `ubuntu`. OVHcloud sends the temporary password in a secure link in the delivery email. The initial account can run administrative commands with `sudo`; direct root login is disabled by default. This differs from DigitalOcean's setup flow, where you can attach a key while creating the Droplet and connect as `root`.
+
+After the initial login, use an SSH key for routine access. Passwords are vulnerable to brute-force attacks, whereas SSH keys are significantly more secure. Think of it like a real lock and key:
 
 - The **public key** is the lock. You put this on the server. Anyone can see the lock, but that does not help them open the door.
 - The **private key** is the physical key. You keep this on your computer. You never share it.
@@ -49,7 +52,16 @@ The diagram above shows the conversation that happens between your computer and 
 3. **Send signature**: Your computer takes that random message and "signs" it using your private key. This creates a unique digital signature that gets sent back to the server.
 4. **The result**: The server uses the public key (which you uploaded to it) to verify the signature. If the signature matches, the server knows you have the private key and grants access.
 
-To generate a key, open the terminal on your local computer. Use the [Ed25519](https://en.wikipedia.org/wiki/EdDSA#Ed25519) algorithm, which is faster and more secure than the older RSA standard.
+Generate the key on your local computer, not on the VPS. Use the [Ed25519](https://en.wikipedia.org/wiki/EdDSA#Ed25519) algorithm.
+
+Create the local SSH directory if it does not exist:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+```
+
+Now create the key pair. Replace `<your_key_name>` with a short name such as `ovh_vps`. Replace `<key_comment>` with a label that helps you recognize the key.
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/<your_key_name> -C "<key_comment>"
@@ -61,14 +73,12 @@ Here is what the arguments do:
 - `-f ~/.ssh/<your_key_name>`: Saves the key with a specific name so you don’t overwrite your default keys.
 - `-C "<key_comment>"`: Adds a comment to help you identify the key.
 
-The system will ask you to add a **passphrase**. This is an extra password to protect your private key. If someone steals your private key file, they cannot use it without this passphrase.
+The command asks for a passphrase. This protects the private key file. When SSH asks for the passphrase later, enter it on your computer. The passphrase is not sent to OVHcloud.
 
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/<your_key_name> -C "<key_comment>"
-
-# Output:
+```text
 Generating public/private ed25519 key pair.
-Enter passphrase for "/home/<your_username>/.ssh/<your_key_name>" (empty for no passphrase):
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
 ```
 
 I strongly recommend adding a passphrase for your personal key.
@@ -86,13 +96,17 @@ The command displays your public key. You will install this key on the VPS after
 
 ### Finalize and connect
 
-After the VPS is ready, find its public IPv4 address in the OVHcloud Control Panel or delivery email. The control panel shows the service status and current configuration; upgrade options depend on the VPS model. You can add storage or choose an available backup option from the VPS management page.
+Before you connect, collect the public IPv4 address from the **IP** section or the delivery email. Get the OS username and temporary password from the delivery email. OVHcloud sends the password through a secure link. The username is `ubuntu` for Ubuntu.
 
-The OVHcloud delivery email provides the initial login details. Connect with the OS account and temporary password. When prompted, change that password; the session closes. Run the same command again and sign in with the new password:
+Connect from your computer's terminal with the Ubuntu account:
 
 ```bash
 ssh ubuntu@<your_vps_ip>
 ```
+
+On the first connection, OpenSSH displays the server's host-key fingerprint and asks whether to trust it. Compare it with a fingerprint from a trusted source if OVHcloud provides one for your service. Otherwise, accept it only if you initiated this connection to your new VPS. OpenSSH stores the accepted fingerprint on your computer.
+
+Enter the temporary password from the secure link. Change the password when prompted. OVHcloud then closes the session. Connect again with the same command and enter the new password.
 
 From your local computer, install the public key on the `ubuntu` account:
 
@@ -100,7 +114,17 @@ From your local computer, install the public key on the `ubuntu` account:
 ssh-copy-id -i ~/.ssh/<your_key_name>.pub ubuntu@<your_vps_ip>
 ```
 
-If `ssh-copy-id` is not available, follow OVHcloud's [SSH key guide for VPS and dedicated servers](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys). You can also store public keys in the OVHcloud Control Panel for use during an installation or reinstallation; a reinstallation formats the server, so do not use it just to add a key to an existing server. Keep the private key on your computer.
+Enter the current `ubuntu` account password if the command prompts for it.
+
+If your computer does not have `ssh-copy-id`, append the public key from your local terminal with this command:
+
+```bash
+ssh ubuntu@<your_vps_ip> 'set -e; umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 600 ~/.ssh/authorized_keys' < ~/.ssh/<your_key_name>.pub
+```
+
+Enter the current `ubuntu` account password if SSH prompts for it.
+
+The public key goes in `/home/ubuntu/.ssh/authorized_keys`. Never copy the private key to the server. See OVHcloud's [SSH key guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys) for more options. You can also [store a public key in the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/import-keys-control-panel) for a future installation or reinstallation. Reinstallation deletes the data on the VPS, so do not use it just to add a key to an existing server.
 
 Confirm that key-based login works before continuing:
 
@@ -108,14 +132,7 @@ Confirm that key-based login works before continuing:
 ssh -i ~/.ssh/<your_key_name> ubuntu@<your_vps_ip>
 ```
 
-A security warning appears about the authenticity of the host. Type `yes` and hit `Enter` to continue.
-
-```text
-The authenticity of host '<your_vps_ip> (<your_vps_ip>)' can't be established.
-ED25519 key fingerprint is SHA256:...
-This key is not known by any other names.
-Are you sure you want to continue connecting (yes/no/[fingerprint])?
-```
+If key authentication works, SSH opens a shell on the VPS without asking for the server account's password. If SSH still asks for that password, check that you installed the `.pub` file on the `ubuntu` account and that the private key path is correct.
 
 Once connected, you will see a welcome message similar to this:
 
@@ -365,6 +382,12 @@ Right now, your server is like a house with the front door locked (SSH keys) but
 
 In this section, you will configure a firewall to block all incoming traffic by default, allowing only the connections you explicitly trust, using **UFW** (Uncomplicated Firewall). You will also install **Fail2Ban** to automatically ban bots that try to guess your SSH keys.
 
+This section configures UFW inside Ubuntu. OVHcloud also offers an optional [Edge Network Firewall](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/firewall-network) for supported public IPv4 addresses. It filters traffic at the network edge and does not replace UFW. Keep the local firewall configured even if you enable the OVHcloud firewall.
+
+If you enable the Edge Network Firewall, allow the same incoming service ports there that you allow in UFW. Otherwise, the edge firewall can block traffic before it reaches Ubuntu.
+
+To configure it, go to **Network → Public IP Addresses** in the OVHcloud Control Panel. Open the **...** menu next to your public IPv4 address and select **Configure Edge Network Firewall**. Allow SSH on port `22`. Later, when this guide opens HTTP and HTTPS in UFW, allow ports `80` and `443` there too.
+
 ### Configure the firewall
 
 Ubuntu comes with a tool called **UFW** (Uncomplicated Firewall). It is designed to be easy to use while providing robust security.
@@ -539,7 +562,15 @@ After fixing the issue, close the browser window and try SSH from your terminal 
 ssh my-website
 ```
 
-If you cannot log in to the installed OS, use OVHcloud's [VPS rescue mode](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue). In the control panel, open the **...** menu next to **Boot**, choose **Reboot in rescue mode**, and confirm. This reboots the VPS into a temporary system and interrupts its running services. OVHcloud sends the rescue SSH credentials by email. After repairing the system, reboot the VPS in normal mode from the control panel.
+If you cannot log in to the installed OS, use OVHcloud's [VPS rescue mode](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue). On the **Home** tab, open the **...** menu next to **Boot**, choose **Reboot in rescue mode**, and confirm. This reboots the VPS into a temporary system and interrupts its running services.
+
+Wait for OVHcloud's email with the rescue SSH credentials. The email also appears in the control panel. Click the name in the top-right corner, then open **Service emails**. If the email does not arrive, check that you are listed as the technical contact for the VPS. In rescue mode, log in as `root` with the temporary password from that email:
+
+```bash
+ssh root@<your_vps_ip>
+```
+
+The rescue system uses a different SSH host key, so your SSH client may warn that the fingerprint changed. Follow the rescue guide to remove or temporarily disable the old entry in your local `~/.ssh/known_hosts` file. If you comment out the old entry, restore it before rebooting the VPS. The guide also explains how to use `lsblk` to identify and mount the installed system partition. Do not assume the partition name from an example. After repairing the system, reboot the VPS in normal mode from the control panel.
 
 ### What is next?
 

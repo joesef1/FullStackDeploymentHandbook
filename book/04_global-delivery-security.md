@@ -79,6 +79,9 @@ _Create an A record that points your domain to the public IPv4 address of your O
 
 Click **Add** to save the record.
 
+> [!NOTE]
+> OVHcloud assigns an IPv6 address to a VPS, but operating system images differ in whether they configure IPv6 automatically. Check the network configuration and verify IPv6 connectivity with OVHcloud's [IPv6 guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/configure-ipv6) before you publish an AAAA record. This guide points the domain to the public IPv4 address with an A record.
+
 #### The CNAME record
 
 A [CNAME record](https://www.cloudflare.com/learning/dns/dns-records/dns-cname-record/) (Canonical Name Record) maps one domain name to another domain name. You use this to ensure that users who type `www` in front of your domain still reach your website.
