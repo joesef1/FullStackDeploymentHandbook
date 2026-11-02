@@ -210,7 +210,7 @@ Now, try to build the project.
 pnpm run build
 ```
 
-**Did the build fail?** If you are using a droplet with low RAM (like the $4 plan), this command will likely fail with an "Out of Memory" error or simply say `Killed`. This happens because the build process needs more RAM than the server has available.
+**Did the build fail?** If you are using a VPS plan with limited RAM, this command may fail with an "Out of Memory" error or simply say `Killed`. This happens because the build process needs more RAM than the server has available.
 
 You might see the following error:
 
@@ -325,7 +325,7 @@ Start a temporary Python web server on port 8080.
 python3 -m http.server 8080
 ```
 
-If you try to visit `http://<your_droplet_ip>:8080` in your browser, it will fail. This is because in **Chapter 1.2**, you configured the firewall (UFW) to block everything except SSH.
+If you try to visit `http://<your_vps_ip>:8080` in your browser, it will fail. This is because in **Chapter 1.2**, you configured the firewall (UFW) to block everything except SSH.
 
 Instead of opening port `8080` to the entire world (which is insecure), you can use your existing SSH connection to create a private [tunnel](https://iximiuz.com/en/posts/ssh-tunnels/) to the server.
 
@@ -888,7 +888,7 @@ Next, you define the main `server` block. This tells Nginx to listen for incomin
 ```nginx
 server {
     listen 80;
-    server_name <your_droplet_ip>;
+    server_name <your_vps_ip>;
 
     access_log /var/log/nginx/<your_project_name>-access.log;
     error_log /var/log/nginx/<your_project_name>-error.log;
@@ -900,7 +900,7 @@ server {
 Setting up dedicated `access_log` and `error_log` files is very important. If something breaks, these files will tell you exactly what went wrong.
 
 > [!NOTE]
-> After creating a domain name we will come back to this file and replace `<your_droplet_ip>` with your domain (e.g., `www.mywebsite.com`).
+> After creating a domain name we will come back to this file and replace `<your_vps_ip>` with your domain (e.g., `www.mywebsite.com`).
 
 #### Serve the frontend
 
@@ -1042,7 +1042,7 @@ upstream <your_project_name>_app_server {
 
 server {
     listen 80;
-    server_name <your_droplet_ip>;
+    server_name <your_vps_ip>;
 
     access_log /var/log/nginx/<your_project_name>-access.log;
     error_log /var/log/nginx/<your_project_name>-error.log;
@@ -1128,10 +1128,10 @@ OpenSSH (v6)               ALLOW       Anywhere (v6)
 
 Before adding complex security rules, you should verify that your basic configuration actually works.
 
-Open a web browser on your local computer and enter your Droplet's IP address:
+Open a web browser on your local computer and enter your VPS's IP address:
 
 ```text
-http://<your_droplet_ip>
+http://<your_vps_ip>
 ```
 
 Your Vue.js frontend should load immediately. Now test a feature that makes an API call, like a search bar or a page that fetches data from the backend.
@@ -1467,7 +1467,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Now, if you refresh your website at `http://<your_droplet_ip>`, you should see zero errors in the console related to the CSP.
+Now, if you refresh your website at `http://<your_vps_ip>`, you should see zero errors in the console related to the CSP.
 
 ![An image showing a clean console with no CSP errors.](./images/2_2_18_csp_errors_resolved.png)
 _The console is now clean with no CSP errors._
@@ -1488,7 +1488,7 @@ upstream <your_project_name>_app_server {
 
 server {
     listen 80;
-    server_name <your_droplet_ip>;
+    server_name <your_vps_ip>;
 
     access_log /var/log/nginx/<your_project_name>-access.log;
     error_log /var/log/nginx/<your_project_name>-error.log;

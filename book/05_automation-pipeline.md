@@ -146,7 +146,7 @@ Your complete `.pre-commit-config.yaml` file should now contain both the Python 
 
 Your configuration file is complete, but right now, it is just a plain text file. You need to install the pre-commit framework so it can read your YAML file and link those tools to your Git repository.
 
-Open your terminal on your **local computer** (do not SSH into your DigitalOcean droplet for this step). Ensure you are in the root directory of your project and activate your Python virtual environment.
+Open your terminal on your **local computer** (do not SSH into your OVHcloud VPS for this step). Ensure you are in the root directory of your project and activate your Python virtual environment.
 
 ```bash
 # Create a virtual environment if you haven't already
@@ -1553,7 +1553,7 @@ In **Chapter 5.5: Continuous delivery**, you will connect GitHub to your live pr
 
 ## Continuous delivery
 
-You have tested the code and scanned it for vulnerabilities. The final step is moving everything to your DigitalOcean production server. But before you can deploy, you need to compile your application and set up a secure way to transfer those files.
+You have tested the code and scanned it for vulnerabilities. The final step is moving everything to your OVHcloud VPS. But before you can deploy, you need to compile your application and set up a secure way to transfer those files.
 
 However, you should not deploy to production completely automatically just yet. Even with the best tests in the world, you want an approval step that pauses the pipeline and waits for a human to hit the approve button before overwriting live code.
 
@@ -1657,7 +1657,7 @@ This integrates the frontend build process into your main workflow. By adding `f
 
 ### Prepare the server scripts
 
-Before GitHub can deploy your code, your DigitalOcean server needs to be ready to receive it. You need to set up two things:
+Before GitHub can deploy your code, your OVHcloud VPS needs to be ready to receive it. You need to set up two things:
 
 - **A backup management system:** This ensures your server's disk does not fill up.
 - **Specific permissions:** This allows your pipeline to restart services without getting stuck asking for a password.
@@ -1736,7 +1736,7 @@ This is a very secure approach. Even if someone steals your automated SSH keys, 
 
 ### Protect the data with an exclude file
 
-In the final deployment stage, you will use a tool called `rsync` to move your files from GitHub to DigitalOcean. `rsync` is fast and efficient, but it is also aggressive.
+In the final deployment stage, you will use a tool called `rsync` to move your files from GitHub to your OVHcloud VPS. `rsync` is fast and efficient, but it is also aggressive.
 
 When you tell `rsync` to sync your repository to the server, it makes the server look exactly like your GitHub repository. If a file exists on the server but not on GitHub, `rsync` will delete it. This means it would happily delete your live production database and your backup folders.
 
@@ -1782,7 +1782,7 @@ Make sure to commit this file and push it to your `master` branch. With this saf
 
 ### Configure GitHub environments and secrets
 
-Your pipeline needs a safe way to log in to your DigitalOcean server. You also want an extra layer of protection so nobody can deploy code by mistake. You can do both by setting up a GitHub environment and storing your sensitive information as secrets.
+Your pipeline needs a safe way to log in to your OVHcloud VPS. You also want an extra layer of protection so nobody can deploy code by mistake. You can do both by setting up a GitHub environment and storing your sensitive information as secrets.
 
 First, let's configure the environment and set up an approval gate. Even though you will trigger the deployment manually, adding a reviewer makes it impossible for an unauthorized person to push code to your live server.
 
@@ -1813,10 +1813,10 @@ _Add secrets to your repository by clicking on the new repository secret button
 
 You need to add these four secrets:
 
-- **DIGITAL_OCEAN_HOST_IP**: The IP address of your DigitalOcean Droplet.
-- **DIGITAL_OCEAN_USERNAME**: The server username you created earlier.
+- **VPS_HOST_IP**: The public IPv4 address of your OVHcloud VPS.
+- **VPS_USERNAME**: The server username you created earlier.
 - **MEILISEARCH_MASTER_KEY**: The master key you use for your Meilisearch database.
-- **DIGITAL_OCEAN_SSH_KEY**: A private SSH key that allows GitHub to log in to your server.
+- **VPS_SSH_KEY**: A private SSH key that allows GitHub to log in to your server.
 
 ![Adding secrets to the repository by clicking on the new repository secret button.](./images/5_5_5_add_secret_page.png)
 _Provide the secret name and its value, then click **Add secret**_
@@ -1839,7 +1839,7 @@ Print the public key to your screen and copy it:
 cat ~/.ssh/github_actions_key.pub
 ```
 
-Log in to your DigitalOcean server. Open your authorized keys file:
+Log in to your OVHcloud VPS. Open your authorized keys file:
 
 ```bash
 nano ~/.ssh/authorized_keys
@@ -1853,7 +1853,7 @@ Finally, go back to your local computer and print the private key:
 cat ~/.ssh/github_actions_key
 ```
 
-Copy the entire block of text, including the top header and the bottom footer. Paste this exact text into GitHub as the value for your **DIGITAL_OCEAN_SSH_KEY** secret.
+Copy the entire block of text, including the top header and the bottom footer. Paste this exact text into GitHub as the value for your **VPS_SSH_KEY** secret.
 
 ### The deployment workflow
 
@@ -1897,9 +1897,9 @@ jobs:
         env:
           MEILISEARCH_KEY: ${{ secrets.MEILISEARCH_MASTER_KEY }}
         with:
-          host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-          username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-          key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           envs: MEILISEARCH_KEY
           script: |
             set -e
@@ -1980,12 +1980,12 @@ jobs:
             sudo /usr/local/bin/clean_backups.sh $BACKUP_RETENTION_COUNT
             echo "Backup process finished successfully."
 
-      - name: Rsync files to droplet
+      - name: Rsync files to VPS
         uses: easingthemes/ssh-deploy@v5.1.0
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-          REMOTE_USER: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.VPS_HOST_IP }}
+          REMOTE_USER: ${{ secrets.VPS_USERNAME }}
           SOURCE: "./"
           TARGET: "/web_app/"
           ARGS: "-avzr --delete --exclude-from='rsync_exclude.txt'"
@@ -1995,9 +1995,9 @@ jobs:
         env:
           MEILISEARCH_KEY: ${{ secrets.MEILISEARCH_MASTER_KEY }}
         with:
-          host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-          username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-          key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           envs: MEILISEARCH_KEY
           script: |
             echo "Creating backend .env file..."
@@ -2011,9 +2011,9 @@ jobs:
       - name: Install Python dependencies (atomic venv swap)
         uses: appleboy/ssh-action@v1.2.4
         with:
-          host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-          username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-          key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
 
@@ -2057,9 +2057,9 @@ jobs:
       - name: Restart backend service
         uses: appleboy/ssh-action@v1.2.4
         with:
-          host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-          username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-          key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
 
@@ -2084,9 +2084,9 @@ jobs:
       - name: Reload Nginx
         uses: appleboy/ssh-action@v1.2.4
         with:
-          host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-          username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-          key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
 
@@ -2152,9 +2152,9 @@ _Click **Review deployments**, select **production**, and click **Approve and de
   env:
     MEILISEARCH_KEY: ${{ secrets.MEILISEARCH_MASTER_KEY }}
   with:
-    host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-    username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-    key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+    host: ${{ secrets.VPS_HOST_IP }}
+    username: ${{ secrets.VPS_USERNAME }}
+    key: ${{ secrets.VPS_SSH_KEY }}
     envs: MEILISEARCH_KEY
     script: |
       # ...
@@ -2186,12 +2186,12 @@ The script captures the `taskUid` from the search engine and enters a `while` lo
 #### The rsync transfer
 
 ```yaml
-- name: Rsync files to droplet
+- name: Rsync files to VPS
   uses: easingthemes/ssh-deploy@v5.1.0
   with:
-    SSH_PRIVATE_KEY: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
-    REMOTE_HOST: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-    REMOTE_USER: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
+    SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+    REMOTE_HOST: ${{ secrets.VPS_HOST_IP }}
+    REMOTE_USER: ${{ secrets.VPS_USERNAME }}
     SOURCE: "./"
     TARGET: "/web_app/"
     ARGS: "-avzr --delete --exclude-from='rsync_exclude.txt'"
@@ -2205,9 +2205,9 @@ The `easingthemes/ssh-deploy` action takes the files from your GitHub repository
 - name: Install Python dependencies (atomic venv swap)
   uses: appleboy/ssh-action@v1.2.4
   with:
-    host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-    username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-    key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+    host: ${{ secrets.VPS_HOST_IP }}
+    username: ${{ secrets.VPS_USERNAME }}
+    key: ${{ secrets.VPS_SSH_KEY }}
     script: |
       # ...
       echo "Backing up current venv..."
@@ -2244,9 +2244,9 @@ If the new installation fails at any point, the script catches the error and ins
 - name: Restart backend service
   uses: appleboy/ssh-action@v1.2.4
   with:
-    host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-    username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-    key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+    host: ${{ secrets.VPS_HOST_IP }}
+    username: ${{ secrets.VPS_USERNAME }}
+    key: ${{ secrets.VPS_SSH_KEY }}
     script: |
       # ...
 
@@ -2262,9 +2262,9 @@ If the new installation fails at any point, the script catches the error and ins
 - name: Reload Nginx
   uses: appleboy/ssh-action@v1.2.4
   with:
-    host: ${{ secrets.DIGITAL_OCEAN_HOST_IP }}
-    username: ${{ secrets.DIGITAL_OCEAN_USERNAME }}
-    key: ${{ secrets.DIGITAL_OCEAN_SSH_KEY }}
+    host: ${{ secrets.VPS_HOST_IP }}
+    username: ${{ secrets.VPS_USERNAME }}
+    key: ${{ secrets.VPS_SSH_KEY }}
     script: |
       # ...
   
@@ -2310,10 +2310,10 @@ Because you set up the `production` environment gate earlier, the pipeline will 
 ![The GitHub Actions interface displaying a deployment paused status waiting for production environment review.](./images/5_5_7_waiting_for_approval_before_deployment.png)
 _Click **Review deployments**, select **production**, and click **Approve and deploy**._
 
-Click it, approve the run, and watch the logs. GitHub will log into your DigitalOcean server, back up your database and search engine, sync your new code using your exclude file, swap your virtual environments, and securely restart your application with zero downtime.
+Click it, approve the run, and watch the logs. GitHub will log into your OVHcloud VPS, back up your database and search engine, sync your new code using your exclude file, swap your virtual environments, and securely restart your application with zero downtime.
 
 ### Conclusion
 
 Congratulations. You have successfully shifted from manual, risky server management to a professional, automated CI/CD pipeline.
 
-By building this infrastructure, you have protected your application from bad formatting, security vulnerabilities, and broken logic. You have also guaranteed that you can push new features to your DigitalOcean production server with absolute confidence, knowing your data is backed up and your deployments are secure.
+By building this infrastructure, you have protected your application from bad formatting, security vulnerabilities, and broken logic. You have also guaranteed that you can push new features to your OVHcloud VPS with absolute confidence, knowing your data is backed up and your deployments are secure.

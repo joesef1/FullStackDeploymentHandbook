@@ -465,7 +465,7 @@ ssh -L 7700:127.0.0.1:7700 my-website
 > [!NOTE]
 > If you skipped setting up an SSH config file in Chapter 1, you will need to use your full connection string instead of the alias:
 >
-> `ssh -L 7700:127.0.0.1:7700 -i ~/.ssh/<YOUR_KEY_NAME> <YOUR_USERNAME>@<YOUR_DROPLET_IP>`
+> `ssh -L 7700:127.0.0.1:7700 -i ~/.ssh/<your_key_name> <your_username>@<your_vps_ip>`
 
 This command tells SSH: "Listen to port 7700 on my laptop, and forward any traffic through the secure connection to port 7700 on the server."
 

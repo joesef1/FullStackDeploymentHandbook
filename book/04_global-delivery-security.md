@@ -6,7 +6,7 @@
 
 Up until now, your application has been accessible via a raw IP address. While this proves your server works, it is not user-friendly, and more importantly, it is not secure. Browsers will flag your website as "Not Secure" because traffic is sent in plain text using [HTTP](https://en.wikipedia.org/wiki/HTTP).
 
-In this chapter, you will purchase a custom domain name, connect it to your DigitalOcean droplet using [DNS records](https://www.cloudflare.com/learning/dns/dns-records/), and secure all traffic with free, auto-renewing [SSL certificates](https://www.cloudflare.com/learning/ssl/what-is-an-ssl-certificate/) via [Let's Encrypt](https://letsencrypt.org/).
+In this chapter, you will purchase a custom domain name, connect it to your OVHcloud VPS using [DNS records](https://www.cloudflare.com/learning/dns/dns-records/), and secure all traffic with free, auto-renewing [SSL certificates](https://www.cloudflare.com/learning/ssl/what-is-an-ssl-certificate/) via [Let's Encrypt](https://letsencrypt.org/).
 
 ### Register a domain
 
@@ -61,7 +61,7 @@ Scroll down to the “Current Records” section. You will see some default reco
 ![An illustration showing the default DNS records that need to be deleted on Porkbun](./images/4_1_8_remove_unwanted_records.jpg)
 _Delete the default records to avoid conflicts with your real server._
 
-You need to create two specific records to point your traffic to DigitalOcean:
+You need to create two specific records to point your traffic to your OVHcloud VPS:
 
 #### The A record
 
@@ -71,11 +71,11 @@ Fill in the form with the following values:
 
 - **Type:** `A`
 - **Host/Name:** Leave this blank.
-- **Answer/Value:** Paste the IP address of your DigitalOcean droplet.
+- **Answer/Value:** Paste the public IPv4 address of your OVHcloud VPS. You can find it in the OVHcloud Control Panel.
 - **TTL (Time To Live):** `600` (or leave as default).
 
 ![An illustration showing how to create an A record on Porkbun](./images/4_1_9_add_a_record_to_dns.jpg)
-_Create an A record that points your domain to the IP address of your DigitalOcean droplet._
+_Create an A record that points your domain to the public IPv4 address of your OVHcloud VPS._
 
 Click **Add** to save the record.
 
@@ -97,7 +97,7 @@ Click **Add** to save the record.
 By the end, your DNS configuration should look like this:
 
 ![An illustration showing the final DNS configuration on Porkbun](./images/4_1_11_final_dns_records_look.png)
-_Your DNS configuration should have an A record pointing to your droplet's IP and a CNAME record pointing `www` to the root domain._
+_Your DNS configuration should have an A record pointing to your VPS's IP and a CNAME record pointing `www` to the root domain._
 
 > [!NOTE]
 > DNS changes can take anywhere from a few minutes to 48 hours to propagate globally. Usually, it takes less than 15 minutes. You can use a tool like [whatsmydns.net](https://www.whatsmydns.net/) to verify if the world can see your new A record.
@@ -595,7 +595,7 @@ The benefits:
 
 The downsides:
 
-- **Complexity:** You have introduced a middleman. If your site goes down, you now have to check if the issue is with DigitalOcean or Cloudflare.
+- **Complexity:** You have introduced a middleman. If your site goes down, you now have to check if the issue is with your VPS or Cloudflare.
 - **Dynamic latency:** While your frontend is fast, your backend API requests still need to travel the full distance to your server. Cloudflare cannot speed up the database query itself, only the network path to reach it.
 
 ### What is next?
@@ -681,7 +681,7 @@ Checking your firewall rules from inside the server is a good start, but scannin
 To do this, use [nmap](https://nmap.org/), an industry-standard network scanning tool.
 
 > [!IMPORTANT]
-> Run this command **from your local machine**, not from your DigitalOcean droplet. If you do not have it installed, you can get it via `sudo apt install nmap`.
+> Run this command **from your local machine**, not from your VPS. If you do not have it installed, you can get it via `sudo apt install nmap`.
 
 ```bash
 nmap -F <your_domain>.com
@@ -693,7 +693,7 @@ If your server is properly secured, the output should look exactly like this:
 
 ```text
 Starting Nmap 7.95 ( https://nmap.org ) at 2025-10-31 21:39 +01
-Nmap scan report for <your_domain>.com (<your_droplet_ip>)
+Nmap scan report for <your_domain>.com (<your_vps_ip>)
 Host is up (0.051s latency).
 Not shown: 97 filtered tcp ports (no-response)
 PORT      STATE SERVICE

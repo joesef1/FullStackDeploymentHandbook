@@ -22,15 +22,15 @@ In this book, we use an [OVHcloud VPS](https://www.ovhcloud.com/en/vps/) to host
 
 Choose a location geographically near you or your target users. I live in Morocco, so I would choose a nearby European location if it is available for the selected plan.
 
-Choose a VPS plan with enough RAM, disk space, and CPU cores for the application. The plan names and resource bundles differ from DigitalOcean’s shared/dedicated Droplet sizes. OVHcloud documents that some VPS resources can be upgraded separately, subject to the VPS model; additional disks and backup options are separate choices in the control panel. Review the current offer and its backup coverage before ordering.
+Choose a VPS plan with enough RAM, disk space, and CPU cores for the application. The plan names and resource bundles differ from DigitalOcean’s shared/dedicated Droplet sizes. OVHcloud lets you upgrade resources and add disks through the control panel, but available options depend on the VPS range and model, and some features are unavailable in Local Zones. Backup coverage also varies by offer, so review the current [resource upgrade options](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/upgrade-resources) and [VPS management and backup details](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel) before ordering.
 
-For the current service management steps, see [Getting started with a VPS](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/starting-with-a-vps/) and [VPS management from the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel/). In the control panel, VPS services are listed under **Bare Metal Cloud → Virtual private servers**; there is no need to create a DigitalOcean-style project first.
+For the current service management steps, see [Getting started with a VPS](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/starting-with-a-vps) and [VPS management from the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel). In the control panel, VPS services are listed under **Bare Metal Cloud → Virtual private servers**; there is no need to create a DigitalOcean-style project first.
 
 ### Configure authentication
 
 This is a critical security step. You can access your server using a **password** or an **SSH key**.
 
-OVHcloud's documented first Linux login uses the account named for the selected operating system (for Ubuntu, `ubuntu`) and a temporary password delivered through a secure link. This differs from DigitalOcean's flow, where you attach a key while creating the Droplet and connect as `root`. We will use the temporary password once, install your public key for the `ubuntu` account, and then continue with key-based SSH access.
+OVHcloud's documented first Linux login uses the account named for the selected operating system (for Ubuntu, `ubuntu`) and a temporary password delivered through a secure link. This differs from DigitalOcean's flow, where you attach a key while creating the Droplet and connect as `root`. On first login, change the temporary password, reconnect with the new password, and install your public key for the `ubuntu` account. After that, continue with key-based SSH access.
 
 **Always use an SSH key.** Passwords are vulnerable to brute-force attacks, whereas SSH keys are significantly more secure. Think of it like a real lock and key:
 
@@ -88,7 +88,7 @@ The command displays your public key. You will install this key on the VPS after
 
 After the VPS is ready, find its public IPv4 address in the OVHcloud Control Panel or delivery email. The control panel shows the service status and current configuration; upgrade options depend on the VPS model. You can add storage or choose an available backup option from the VPS management page.
 
-The OVHcloud delivery email provides the initial login details. Connect with the OS account and temporary password. When prompted, change that password; the session closes, so reconnect with the new password:
+The OVHcloud delivery email provides the initial login details. Connect with the OS account and temporary password. When prompted, change that password; the session closes. Run the same command again and sign in with the new password:
 
 ```bash
 ssh ubuntu@<your_vps_ip>
@@ -100,7 +100,7 @@ From your local computer, install the public key on the `ubuntu` account:
 ssh-copy-id -i ~/.ssh/<your_key_name>.pub ubuntu@<your_vps_ip>
 ```
 
-If `ssh-copy-id` is not available, follow OVHcloud's [guide to creating and using SSH authentication keys](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys/). You can also store public keys in the OVHcloud Control Panel for use during an installation or reinstallation; a reinstallation formats the server, so do not use it just to add a key to an existing server. Keep the private key on your computer.
+If `ssh-copy-id` is not available, follow OVHcloud's [SSH key guide for VPS and dedicated servers](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys). You can also store public keys in the OVHcloud Control Panel for use during an installation or reinstallation; a reinstallation formats the server, so do not use it just to add a key to an existing server. Keep the private key on your computer.
 
 Confirm that key-based login works before continuing:
 
@@ -190,7 +190,7 @@ sudo usermod -aG sudo <your_username>
 Now, log out of the server (`exit` or `Ctrl+D`) and attempt to log in as your new user.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
+ssh -i ~/.ssh/<your_key_name> <your_username>@<your_vps_ip>
 ```
 
 You will get an error because the SSH key is authorized for the existing `ubuntu` account, not the new user. Copy the authorized key to the new account.
@@ -202,7 +202,7 @@ You will get an error because the SSH key is authorized for the existing `ubuntu
 Log back in as the existing `ubuntu` account, which has administrative privileges through `sudo`.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> ubuntu@<your_vps_ip>
+ssh -i ~/.ssh/<your_key_name> ubuntu@<your_vps_ip>
 ```
 
 Run these commands to copy the authorized keys to the new user. Set the correct ownership and permissions for the copied key file.
@@ -217,7 +217,7 @@ sudo chmod 600 /home/<your_username>/.ssh/authorized_keys
 Now, exit and try to log in as your new user again.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
+ssh -i ~/.ssh/<your_key_name> <your_username>@<your_vps_ip>
 ```
 
 It should work now. You will see a prompt like this:
@@ -270,7 +270,7 @@ sudo systemctl restart ssh
 Before closing your current session, open a second terminal and confirm that your named user can still connect with the SSH key:
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
+ssh -i ~/.ssh/<your_key_name> <your_username>@<your_vps_ip>
 ```
 
 Now, exit the server.
@@ -282,7 +282,7 @@ exit
 Try to log in as `root`.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> root@<your_vps_ip>
+ssh -i ~/.ssh/<your_key_name> root@<your_vps_ip>
 ```
 
 You should see a message indicating that authentication was rejected. Depending on your local SSH configuration, you will see one of these two errors:
@@ -325,7 +325,7 @@ Add the following configuration block at the bottom of the file:
 Host my-website
     HostName <your_vps_ip>
     User <your_username>
-    IdentityFile ~/.ssh/<private_key_name>
+    IdentityFile ~/.ssh/<your_key_name>
     IdentitiesOnly yes
 ```
 
@@ -340,7 +340,7 @@ Here is what these lines do:
 Save the file and exit. Now, instead of typing this long command:
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
+ssh -i ~/.ssh/<your_key_name> <your_username>@<your_vps_ip>
 ```
 
 You can simply type:
@@ -523,9 +523,9 @@ If you see IPs in the "Banned IP list", it means the tool is working. That speci
 
 What happens if you make a mistake? For example, if you accidentally run `ufw enable` before allowing OpenSSH, or if you configure SSH keys incorrectly and lose access to your private key.
 
-OVHcloud provides a browser-based KVM console and a separate rescue mode. The KVM console opens a console session to the VPS, but OVHcloud states that it is not a workaround when the operating system itself is inaccessible. Use [rescue mode](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue/) for operating-system recovery.
+OVHcloud provides a browser-based KVM console and a separate rescue mode. The KVM console opens a console session to the VPS, but OVHcloud states that it is not a workaround when the operating system itself is inaccessible. Use [rescue mode](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue) for operating-system recovery.
 
-To open KVM, go to **Bare Metal Cloud → Virtual private servers**, select your VPS, then open the **...** menu next to its name and select **KVM**. See OVHcloud's [KVM console guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/using-kvm-for-vps/) for the current control-panel steps. Log in with an active Linux account if prompted; the console keyboard layout may differ from your computer's.
+To open KVM, go to **Bare Metal Cloud → Virtual private servers**, select your VPS, then on the **General information** tab open the **...** menu next to the VPS name and select **KVM**. See OVHcloud's [KVM console guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/using-kvm-for-vps) for the current control-panel steps. Log in with an active Linux account if prompted; the console keyboard layout may differ from your computer's.
 
 If the OS is still running and you can log in through KVM, you can repair a firewall rule. For example, if you forgot to allow SSH:
 
@@ -539,7 +539,7 @@ After fixing the issue, close the browser window and try SSH from your terminal 
 ssh my-website
 ```
 
-If you cannot log in to the installed OS, use OVHcloud's [VPS rescue mode guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue/) instead; recovery steps differ from an interactive console login.
+If you cannot log in to the installed OS, use OVHcloud's [VPS rescue mode](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue). In the control panel, open the **...** menu next to **Boot**, choose **Reboot in rescue mode**, and confirm. This reboots the VPS into a temporary system and interrupts its running services. OVHcloud sends the rescue SSH credentials by email. After repairing the system, reboot the VPS in normal mode from the control panel.
 
 ### What is next?
 

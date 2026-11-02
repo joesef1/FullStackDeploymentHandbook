@@ -12,7 +12,7 @@ This book was born out of a simple philosophy: **before you automate anything, y
 
 The book in your hands is the distilled result of eight months of active architectural refinements on a live production server. Every concept, script, and configuration block was tested, broken, and optimized using a real full-stack application: a **Vue.js** frontend, a **FastAPI** backend, and a self-hosted **Meilisearch** engine.
 
-Regardless of your specific software stack, the mechanics detailed here are universal. They apply whether you are spinning up a virtual machine on DigitalOcean, configuring an AWS EC2 container, setting up a bare-metal server, or running a Raspberry Pi on your desk.
+Regardless of your specific software stack, the mechanics detailed here are universal. They apply whether you are setting up an OVHcloud VPS, launching an AWS EC2 instance, configuring a bare-metal server, or running a Raspberry Pi on your desk.
 
 You will learn how to design cloud environments from the ground up, secure your entry gateways, configure raw reverse proxies, build modular continuous integration (CI) environments with deep security testing, and deploy code with atomic rollbacks. By the time you finish the final page, your application will not just be live. It will be secure, globally optimized, observable, and built to last.
 
