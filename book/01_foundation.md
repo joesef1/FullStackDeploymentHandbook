@@ -4,7 +4,7 @@
 
 ### Introduction
 
-Before you deploy any code, you need a secure environment. We use DigitalOcean here, but these concepts apply to AWS EC2, Linode, or even a Raspberry Pi.
+Before you deploy any code, you need a secure environment. This section uses an OVHcloud VPS, but the Linux commands and security concepts also apply to other providers and to self-hosted servers.
 
 By the end of this section, you will have a server running Ubuntu 24.04 LTS, accessed securely via SSH keys, with password authentication completely disabled.
 
@@ -16,70 +16,25 @@ By the end of this section, you will have a server running Ubuntu 24.04 LTS, acc
 > [!IMPORTANT]
 > Throughout this guide, you will see text inside angle brackets like `<your_username>` or `<your_key_name>`. These are **placeholders**. You must replace them with your actual values and **remove the brackets** when running the commands.
 
-### Create the project
+### Order an OVHcloud VPS
 
-In this book, we use DigitalOcean to host your web application. If you don’t have an account, [create one here](https://m.do.co/c/4f9010fc5eb3) to get **$200 in free credit**.
+In this book, we use an [OVHcloud VPS](https://www.ovhcloud.com/en/vps/) to host the web application. Create an OVHcloud account, then order a VPS with Ubuntu 24.04 LTS. OVHcloud VPS plans, available locations, prices, and included storage vary by region and offer, so choose a plan that fits your workload rather than relying on a fixed price from another provider.
 
-After creating your account, create a project to hold your resources. Click on the **New project** button.
+Choose a location geographically near you or your target users. I live in Morocco, so I would choose a nearby European location if it is available for the selected plan.
 
-![Screenshot of DigitalOcean dashboard highlighting the New Project button](./images/1_1_1_create_new_project_inkscape.png)
-_The location of the **+ New Project** button on the DigitalOcean dashboard._
+Choose a VPS plan with enough RAM, disk space, and CPU cores for the application. The plan names and resource bundles differ from DigitalOcean’s shared/dedicated Droplet sizes. OVHcloud documents that some VPS resources can be upgraded separately, subject to the VPS model; additional disks and backup options are separate choices in the control panel. Review the current offer and its backup coverage before ordering.
 
-Give your project a name and a description. Choose a **descriptive** name so you can remember the purpose of the project later. I named mine “imad-saddik”. Click on **Create Project** when you are done.
-
-![Screenshot of project creation form with name and description fields](./images/1_1_2_information_about_project_step_1.png)
-_Give the project a name and a description._
-
-DigitalOcean will ask if you want to move resources to this project. Click **Skip for now** since you are starting from scratch.
-
-![Screenshot of move resources dialog with Skip for now button](./images/1_1_3_information_about_project_step_2.png)
-_Skip this step because you don’t have any resources yet._
-
-### Create the droplet
-
-Now, create the virtual machine. In DigitalOcean, these are called “droplets”. Click on **Create** in the top menu, then select **droplets**.
-
-A droplet is a Linux-based virtual machine that runs on virtualized hardware. This machine will host the code for your website.
-
-![Screenshot of Create menu dropdown with Droplets option highlighted](./images/1_1_4_create_droplet_inkscape.jpg)
-_Click **Create**, then select **droplets** to start setting up your server._
-
-Choose a **Region** where your VM will be hosted. Always select a region geographically near you or your target users. I live in Morocco, so I chose the Frankfurt (Germany) datacenter.
-
-![Screenshot of datacenter region selector showing various global locations](./images/1_1_5_choose_region.png)
-_Select the region where your droplet will be hosted._
-
-Next, choose an **Operating System**. Linux is the standard for servers. Select **Ubuntu 24.04 (LTS)** because it is stable and well-supported.
-
-![Screenshot of operating system selection with Ubuntu 24.04 LTS option](./images/1_1_6_choose_an_image.png)
-_Choose the operating system for your droplet._
-
-Now you need to choose the size of your virtual machine. You can pick between **shared CPU** and **dedicated CPU**. Inside each option, you must decide how much **RAM**, **disk space**, and how many **CPU cores** you want.
-
-Dedicated VMs are more expensive because the resources are **reserved only for you**. Adding more RAM, disk space, or CPU cores will also increase the price.
-
-Fortunately, you can **change the droplet size later** if needed. For now, create a droplet with a shared CPU and the lowest resources. This costs **$4 per month**, and I will show you how to upgrade it later.
-
-![Screenshot of droplet size options showing CPU, RAM, and storage configurations](./images/1_1_7_choose_size.png)
-_Select the droplet size that fits your needs._
-
-If you need more storage, click **Add Volume** and enter the size in GB. This feature is not free; it costs **$1 per month per 10 GB**. You can also enable automatic backups if you need them.
-
-![Screenshot of additional storage volume and backup configuration options](./images/1_1_8_space_and_backup.png)
-_Additional storage and backup options._
+For the current service management steps, see [Getting started with a VPS](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/starting-with-a-vps/) and [VPS management from the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel/). In the control panel, VPS services are listed under **Bare Metal Cloud → Virtual private servers**; there is no need to create a DigitalOcean-style project first.
 
 ### Configure authentication
 
 This is a critical security step. You can access your server using a **password** or an **SSH key**.
 
-Select **SSH Key** and click on the **Add SSH Key** button.
-
-![Screenshot of authentication method selector with SSH Key option and Add SSH Key button](./images/1_1_9_authentication.png)
-_Select SSH key for better security._
+OVHcloud's documented first Linux login uses the account named for the selected operating system (for Ubuntu, `ubuntu`) and a temporary password delivered through a secure link. This differs from DigitalOcean's flow, where you attach a key while creating the Droplet and connect as `root`. We will use the temporary password once, install your public key for the `ubuntu` account, and then continue with key-based SSH access.
 
 **Always use an SSH key.** Passwords are vulnerable to brute-force attacks, whereas SSH keys are significantly more secure. Think of it like a real lock and key:
 
-- The **public key** is the lock. You put this on the server (the droplet). Anyone can see the lock, but that does not help them open the door.
+- The **public key** is the lock. You put this on the server. Anyone can see the lock, but that does not help them open the door.
 - The **private key** is the physical key. You keep this on your computer. You never share it.
 
 When you try to connect, the server checks if your "key" fits its "lock." If it does, you get in without a password.
@@ -127,66 +82,39 @@ You have generated the key pair. Now, copy the public key.
 cat ~/.ssh/<your_key_name>.pub
 ```
 
-The command displays your public key. Copy the entire text starting with `ssh-ed25519`. Paste it into the box, give it a name, and click **Add SSH Key**.
-
-![Screenshot of adding SSH public key to DigitalOcean](./images/1_1_11_adding_a_public_key.png)
-_Add the public SSH key._
-
-You can add more than one SSH key by clicking the **New SSH Key** button. This allows you to add a specific key for your CI without a passphrase, while keeping the one on your computer protected with a passphrase.
-
-![Screenshot showing multiple SSH keys added to droplet configuration](./images/1_1_12_add_additional_ssh_keys.jpg)
-_Add multiple SSH keys._
-
-You are almost done. Select **Add improved metrics monitoring and alerting** because it is free.
-
-![Screenshot of advanced options showing monitoring and alerting checkbox](./images/1_1_13_advanced_options.png)
-_Select the free monitoring option._
+The command displays your public key. You will install this key on the VPS after the first login. The public key can be shared; never copy or upload the private key.
 
 ### Finalize and connect
 
-Give your droplet a name you can recognize, add tags, and assign it to the project you created. You can deploy multiple droplets, but for now, keep the quantity set to **1 droplet**.
+After the VPS is ready, find its public IPv4 address in the OVHcloud Control Panel or delivery email. The control panel shows the service status and current configuration; upgrade options depend on the VPS model. You can add storage or choose an available backup option from the VPS management page.
 
-![Screenshot of droplet finalization form with hostname, tags, and project fields](./images/1_1_14_final_step_before_creating_droplet.png)
-_Give your droplet a name, tags, and assign it to a project._
-
-Click on **Create droplet**. The site redirects you to the project page. Under **Resources**, you should see a **green dot** next to your droplet. This means it is running.
-
-![Screenshot of project resources page showing active droplet with green status indicator](./images/1_1_15_droplet_in_project_page.png)
-_Ensure that the droplet is running and assigned to the project._
-
-Later, if you find that this VM cannot handle the traffic, you can click on **Upsize** to add more resources.
-
-![Screenshot of droplet resize options showing CPU, RAM, and disk upgrade choices](./images/1_1_16_upsize_droplet.png)
-_Increase resources by upsizing._
-
-You are now ready to connect to your VM. Find the **IP address** on the project page. Copy the IP address shown next to your droplet's name.
-
-![Screenshot highlighting the IP address field in the droplet overview](./images/1_1_17_find_ip_address.png)
-_Locate the IP address of the VM._
-
-Use the SSH command to connect to the machine. Pass your private key using the `-i` flag and add your IP address after `root@`.
+The OVHcloud delivery email provides the initial login details. Connect with the OS account and temporary password. When prompted, change that password; the session closes, so reconnect with the new password:
 
 ```bash
-ssh -i ~/.ssh/<your_key_name> root@<your_droplet_ip>
+ssh ubuntu@<your_vps_ip>
+```
+
+From your local computer, install the public key on the `ubuntu` account:
+
+```bash
+ssh-copy-id -i ~/.ssh/<your_key_name>.pub ubuntu@<your_vps_ip>
+```
+
+If `ssh-copy-id` is not available, follow OVHcloud's [guide to creating and using SSH authentication keys](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys/). You can also store public keys in the OVHcloud Control Panel for use during an installation or reinstallation; a reinstallation formats the server, so do not use it just to add a key to an existing server. Keep the private key on your computer.
+
+Confirm that key-based login works before continuing:
+
+```bash
+ssh -i ~/.ssh/<your_key_name> ubuntu@<your_vps_ip>
 ```
 
 A security warning appears about the authenticity of the host. Type `yes` and hit `Enter` to continue.
 
 ```text
-The authenticity of host '<your_droplet_ip> (<your_droplet_ip>)' can't be established.
+The authenticity of host '<your_vps_ip> (<your_vps_ip>)' can't be established.
 ED25519 key fingerprint is SHA256:...
 This key is not known by any other names.
 Are you sure you want to continue connecting (yes/no/[fingerprint])?
-```
-
-Sometimes, the server is not fully ready even though the status says "Running". If you see a **Connection closed** message immediately after typing yes, don’t worry.
-
-If this happens, just wait a few seconds and run the SSH command again. It should work the second time.
-
-```text
-Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
-Warning: Permanently added '<your_droplet_ip>' (ED69696) to the list of known hosts.
-Connection closed by <your_droplet_ip> port 22
 ```
 
 Once connected, you will see a welcome message similar to this:
@@ -201,7 +129,7 @@ individual files in /usr/share/doc/*/copyright.
 Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
 applicable law.
 
-root@<your_hostname>:~#
+ubuntu@<your_hostname>:~$
 ```
 
 Update your VM packages by running the following commands:
@@ -212,7 +140,7 @@ sudo apt upgrade
 ```
 
 > [!IMPORTANT]
-> If you see a configuration screen during the update, select **keep the local version currently installed**. This option ensures you keep the working SSH configuration that DigitalOcean set up for you.
+> If you see a configuration screen during the update, select **keep the local version currently installed** unless you have reviewed the proposed replacement. This avoids unexpectedly replacing the SSH configuration you are using to connect.
 
 ![Screenshot of dpkg configuration prompt asking to keep or replace sshd_config](./images/1_1_18_configure_open_ssh_server_warning.png)
 _Handle the configuration conflict._
@@ -220,7 +148,7 @@ _Handle the configuration conflict._
 Reboot the machine to complete the upgrade and start using the new kernel and packages.
 
 ```bash
-reboot
+sudo reboot
 ```
 
 The connection will close, but you can connect via SSH to the server again after it reboots. If you want to exit the VM, type exit and hit `Enter` or hit `Ctrl+D`.
@@ -232,7 +160,7 @@ Running everything as **root** is dangerous. If you make a mistake, it might be 
 Create a new user to act as a security barrier.
 
 ```bash
-adduser <your_username>
+sudo adduser <your_username>
 ```
 
 It will ask you to set a password and fill in some details. You can skip the details by pressing `Enter`.
@@ -256,41 +184,40 @@ info: Adding user `<your_username>' to group `users' ...
 Give the new user administrative privileges ([sudo](https://www.sudo.ws/news/)).
 
 ```bash
-usermod -aG sudo <your_username>
+sudo usermod -aG sudo <your_username>
 ```
 
 Now, log out of the server (`exit` or `Ctrl+D`) and attempt to log in as your new user.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_droplet_ip>
+ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
 ```
 
-You will get an error. This happens because the SSH key you authorized exists only in the `root` user's `authorized_keys` file. The new user (`<your_username>`) has an empty list. You need to copy the key from `root` to `<your_username>`.
+You will get an error because the SSH key is authorized for the existing `ubuntu` account, not the new user. Copy the authorized key to the new account.
 
 ```text
-<your_username>@<your_droplet_ip>: Permission denied (publickey).
+<your_username>@<your_vps_ip>: Permission denied (publickey).
 ```
 
-Log back in as **root**.
+Log back in as the existing `ubuntu` account, which has administrative privileges through `sudo`.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> root@<your_droplet_ip>
+ssh -i ~/.ssh/<private_key_name> ubuntu@<your_vps_ip>
 ```
 
-Run these commands to copy the authorized keys to the new user. Copy the entire directory and preserve the strict root permissions using the `--preserve=mode` flag.
+Run these commands to copy the authorized keys to the new user. Set the correct ownership and permissions for the copied key file.
 
 ```bash
-# Copy the .ssh directory, preserving the strict file permissions
-cp -r --preserve=mode /root/.ssh /home/<your_username>/
-
-# Give the new user ownership of this directory
-chown -R <your_username>:<your_username> /home/<your_username>/.ssh
+sudo install -d -m 700 -o <your_username> -g <your_username> /home/<your_username>/.ssh
+sudo cp /home/ubuntu/.ssh/authorized_keys /home/<your_username>/.ssh/authorized_keys
+sudo chown <your_username>:<your_username> /home/<your_username>/.ssh/authorized_keys
+sudo chmod 600 /home/<your_username>/.ssh/authorized_keys
 ```
 
 Now, exit and try to log in as your new user again.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_droplet_ip>
+ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
 ```
 
 It should work now. You will see a prompt like this:
@@ -308,21 +235,21 @@ Before you move on to the next step, you must verify that your new user can actu
 sudo ls /root
 ```
 
-If the command works, you will see the contents of the root directory. If you get an error saying your user is "not in the sudoers file", **STOP**. Do not disable root login until you fix the user permissions.
+If the command works, you will see the contents of the root directory. If you get an error saying your user is "not in the sudoers file", **STOP**. Do not continue until you fix the user permissions.
 
-From now on, you will stop using `root` and use this account instead.
+From now on, use your named account for administration. Keep the original `ubuntu` account available until you have confirmed the new account works.
 
 ### Disable root SSH access
 
 Now that your new user is set up, you should disable direct login for the root account. This reduces your attack surface.
 
-Open the SSH configuration file:
+Create a dedicated SSH configuration file so the settings are explicit and easy to review. Ubuntu may load files in `/etc/ssh/sshd_config.d/` before the rest of the main file, so inspect the existing configuration rather than assuming the last line wins.
 
 ```bash
-sudo nano /etc/ssh/sshd_config
+sudo nano /etc/ssh/sshd_config.d/00-local-hardening.conf
 ```
 
-Find the line `PermitRootLogin yes` and change it to `no`. Also, find the line `PasswordAuthentication yes` and change it to `no`. This explicitly forces the server to use SSH keys and reject all password login attempts.
+Add these settings to explicitly require SSH keys and reject root SSH login:
 
 > [!TIP]
 > To search in nano, press `Ctrl+W`, type the search term, and hit `Enter`.
@@ -332,10 +259,18 @@ PermitRootLogin no
 PasswordAuthentication no
 ```
 
-Save the file by pressing `Ctrl+O` (to write out/save), then exit nano with `Ctrl+X`. After that, restart the SSH service to apply the changes.
+Save the file by pressing `Ctrl+O` (to write out/save), then exit nano with `Ctrl+X`. Check the SSH configuration syntax before applying it. Keep your current SSH session open while testing a second connection.
 
 ```bash
+sudo sshd -t
+sudo sshd -T | grep -E '^(passwordauthentication|permitrootlogin)'
 sudo systemctl restart ssh
+```
+
+Before closing your current session, open a second terminal and confirm that your named user can still connect with the SSH key:
+
+```bash
+ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
 ```
 
 Now, exit the server.
@@ -347,7 +282,7 @@ exit
 Try to log in as `root`.
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> root@<your_droplet_ip>
+ssh -i ~/.ssh/<private_key_name> root@<your_vps_ip>
 ```
 
 You should see a message indicating that authentication was rejected. Depending on your local SSH configuration, you will see one of these two errors:
@@ -357,43 +292,23 @@ You should see a message indicating that authentication was rejected. Depending 
 Permission denied (publickey).
 
 # Scenario B: If you have many SSH keys on your computer
-Received disconnect from <your_droplet_ip> port 22:2: Too many authentication failures
+Received disconnect from <your_vps_ip> port 22:2: Too many authentication failures
 ```
 
-Both errors mean the same thing: The root account is now locked against remote login.
+A `Permission denied` response confirms the root login was rejected. The “Too many authentication failures” response can also mean your SSH client offered too many keys; if you see it, retry with `IdentitiesOnly yes` to send only the specified key.
 
 > [!NOTE]
-> Setting `PasswordAuthentication no` is optional because DigitalOcean already disabled password authentication when you created the droplet (assuming you selected SSH key authentication).
+> OVHcloud's initial VPS access uses an OS-specific account and a temporary password. After installing and confirming your SSH key, explicitly disable password authentication.
 >
-> However, it is good practice to set it manually. This ensures your server remains secure if you run your setup scripts on a different provider that does not create those default cloud settings.
+> Ubuntu's SSH configuration commonly includes `/etc/ssh/sshd_config.d/*.conf` near the top of `sshd_config`. SSH uses the first value it reads for a setting, so an earlier included file can take precedence over a later value in the main file. The `00-local-hardening.conf` file created above is read before later numbered files on systems that use this include pattern.
 >
-> Unlike many Linux services where the "last configuration wins", SSH uses a "first match wins" rule. It applies the first value it finds for a setting and ignores the rest.
->
-> DigitalOcean's default `sshd_config` file includes this line at the very top:
->
-> ```text
-> Include /etc/ssh/sshd_config.d/*.conf
-> ```
->
-> This means SSH reads the files in the `.d` folder before reading the rest of your main file. You can see this hidden rule by running:
+> Image defaults vary. Check the effective configuration with:
 >
 > ```bash
-> sudo grep -r "PasswordAuthentication" /etc/ssh/sshd_config.d/
+> sudo sshd -T | grep -E '^(passwordauthentication|permitrootlogin)'
 > ```
 >
-> You will see something like this:
->
-> ```text
-> /etc/ssh/sshd_config.d/50-cloud-init.conf:PasswordAuthentication no
-> /etc/ssh/sshd_config.d/60-cloudimg-settings.conf:PasswordAuthentication no
-> ```
->
-> Because SSH sees this "no" first, it locks that setting in.
->
-> So why did we edit the main file? We edit the main `sshd_config` file as a safety net.
->
-> If you ever use your setup script to configure a fresh server on a bare-metal provider or a different cloud, that `50-cloud-init.conf` file might not exist. By explicitly setting `PasswordAuthentication no` in your main configuration, you guarantee your server is secure regardless of the hosting provider.
-
+> Confirm the output says `passwordauthentication no` and `permitrootlogin no` before you close your current session.
 ### Simplify SSH access
 
 Typing the full SSH command with the key path and IP address every time is tedious. You can configure your local SSH client to remember these details for you.
@@ -408,7 +323,7 @@ Add the following configuration block at the bottom of the file:
 
 ```text
 Host my-website
-    HostName <your_droplet_ip>
+    HostName <your_vps_ip>
     User <your_username>
     IdentityFile ~/.ssh/<private_key_name>
     IdentitiesOnly yes
@@ -425,7 +340,7 @@ Here is what these lines do:
 Save the file and exit. Now, instead of typing this long command:
 
 ```bash
-ssh -i ~/.ssh/<private_key_name> <your_username>@<your_droplet_ip>
+ssh -i ~/.ssh/<private_key_name> <your_username>@<your_vps_ip>
 ```
 
 You can simply type:
@@ -440,7 +355,7 @@ Your computer will automatically look up the IP, user, and key, and log you stra
 
 You have successfully configured a clean Ubuntu server and secured it with SSH keys. However, your server is still exposed to the open internet.
 
-In the next subchapter, **The firewall strategy**, we will lock down the network. You will learn how to configure [UFW](https://www.digitalocean.com/community/tutorials/ufw-essentials-common-firewall-rules-and-commands) to block unwanted traffic, set up [Fail2Ban](https://github.com/fail2ban/fail2ban) to stop brute-force attacks, and use the Recovery Console if you ever get locked out.
+In the next subchapter, **The firewall strategy**, we will lock down the network. You will learn how to configure [UFW](https://documentation.ubuntu.com/server/how-to/security/firewalls/) to block unwanted traffic, set up [Fail2Ban](https://github.com/fail2ban/fail2ban) to stop brute-force attacks, and use OVHcloud KVM or rescue mode if you ever lose access.
 
 ## The firewall strategy
 
@@ -604,41 +519,27 @@ Status for the jail: sshd
 
 If you see IPs in the "Banned IP list", it means the tool is working. That specific IP from the logs is now blocked and can no longer connect to the server.
 
-### Recovery console
+### Recover access to the VPS
 
 What happens if you make a mistake? For example, if you accidentally run `ufw enable` before allowing OpenSSH, or if you configure SSH keys incorrectly and lose access to your private key.
 
-If you get locked out, DigitalOcean provides a Recovery Console. This feature gives you direct access to the machine through your browser, bypassing SSH entirely.
+OVHcloud provides a browser-based KVM console and a separate rescue mode. The KVM console opens a console session to the VPS, but OVHcloud states that it is not a workaround when the operating system itself is inaccessible. Use [rescue mode](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue/) for operating-system recovery.
 
-1. Go to the DigitalOcean dashboard and click on your project.
-2. Click the name of your droplet to open its details.
-3. Click on the **Access** button in the left sidebar.
-4. Click **Launch Recovery Console**.
+To open KVM, go to **Bare Metal Cloud → Virtual private servers**, select your VPS, then open the **...** menu next to its name and select **KVM**. See OVHcloud's [KVM console guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/using-kvm-for-vps/) for the current control-panel steps. Log in with an active Linux account if prompted; the console keyboard layout may differ from your computer's.
 
-![Accessing the Recovery Console from the DigitalOcean dashboard](./images/1_2_2_locate_console_digital_ocean_inkscape.png)
-_Access the Recovery Console from the DigitalOcean dashboard._
-
-Once the console opens, you will need to log in.
-
-> [!WARNING]
-> The Recovery Console requires a password to log in. If you created your user without a password, or if you forgot it, you will need to reset the root password first using the "Reset Root Password" button on the same Access page.
-
-The keyboard mapping in the Recovery Console can be tricky. It is a good idea to type your password in the username field first just to see if the characters match what you are pressing, then delete it and log in properly.
-
-![Click the Launch Recovery Console button](./images/1_2_3_launch_recovery_console_inkscape.png)
-_The Recovery Console login screen._
-
-Once you are logged in, you can run the missing command to fix the issue. For example, if you forgot to allow SSH:
+If the OS is still running and you can log in through KVM, you can repair a firewall rule. For example, if you forgot to allow SSH:
 
 ```bash
 sudo ufw allow OpenSSH
 ```
 
-After fixing the issue, close the browser window and try to SSH from your terminal again.
+After fixing the issue, close the browser window and try SSH from your terminal again.
 
 ```bash
 ssh my-website
 ```
+
+If you cannot log in to the installed OS, use OVHcloud's [VPS rescue mode guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/rescue/) instead; recovery steps differ from an interactive console login.
 
 ### What is next?
 
