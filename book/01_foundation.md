@@ -130,7 +130,19 @@ ssh ubuntu@<your_vps_ip> 'set -e; umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/auth
 
 Enter the current `ubuntu` account password if SSH prompts for it.
 
-The public key goes in `/home/ubuntu/.ssh/authorized_keys`. Never copy the private key to the server. See OVHcloud's [SSH key guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys) for more options. You can also [store a public key in the OVHcloud Control Panel](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/import-keys-control-panel) for a future installation or reinstallation. Reinstallation deletes the data on the VPS, so do not use it just to add a key to an existing server.
+The public key goes in `/home/ubuntu/.ssh/authorized_keys`. Never copy the private key to the server. See OVHcloud's [SSH key guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/creating-ssh-keys) for more options.
+
+> [!NOTE]
+> **OVHcloud's Control Panel key setup differs from DigitalOcean's.** The original DigitalOcean flow lets you attach an SSH key while creating a Droplet. OVHcloud's [VPS order guide](https://support.us.ovhcloud.com/hc/en-us/articles/39499067423379-How-to-order-a-VPS) does not document that step in the standard order flow; its [first-login guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/starting-with-a-vps) instead describes signing in with the temporary password and changing it. You then install the key on the running VPS as shown above. OVHcloud does let you store a public key in your account for use when you reinstall a VPS. Storing it there does **not** add the key to this already-installed VPS.
+
+If you want OVHcloud to retain this public key for a future reinstallation, add it to your Control Panel:
+
+1. Click your account name in the upper-right corner, then click **My offers and services**.
+2. In **My services**, click **SSH keys**.
+3. Click **Add an SSH key**, then select **Dedicated** from the menu. OVHcloud uses this key category for VPS reinstallations too.
+4. Enter a label, paste the complete public key string shown by the `cat ~/.ssh/<your_key_name>.pub` command above, and click **Confirm**.
+
+The stored key will then be available as a pre-install option when reinstalling a VPS. Reinstallation erases the VPS disks, so this is for a planned rebuild only; it is not required for the current server. See OVHcloud's [Control Panel SSH key instructions](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/dedicated-servers/import-keys-control-panel) and [VPS management guide](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel).
 
 Confirm that key-based login works before continuing:
 
@@ -263,10 +275,10 @@ See "man sudo_root" for details.
 Before you move on to the next step, you must verify that your new user can actually perform administrative tasks. If you disable root login and find out your user cannot use sudo, you will be locked out of your own server.
 
 ```bash
-sudo ls /root
+sudo whoami
 ```
 
-If the command works, you will see the contents of the root directory. If you get an error saying your user is "not in the sudoers file", **STOP**. Do not continue until you fix the user permissions.
+Enter your new user's password if `sudo` prompts for it. The command should print `root`. This confirms the account can run a command with administrator privileges. If you see an error saying your user is "not in the sudoers file", **STOP**. Do not continue until you fix the user permissions.
 
 From now on, use your named account for administration. Keep the original `ubuntu` account available until you have confirmed the new account works.
 
@@ -280,10 +292,9 @@ Create a dedicated SSH configuration file so the settings are explicit and easy 
 sudo nano /etc/ssh/sshd_config.d/00-local-hardening.conf
 ```
 
-Add these settings to reject root SSH login and disable both SSH password and keyboard-interactive authentication. Public-key authentication remains enabled by default in OpenSSH; it is stated explicitly here so the intended access method is clear:
+This is a new file, so it will normally be blank. Type or paste the following four lines into the editor; you do not need to search for `PermitRootLogin`. If you already pressed `Ctrl+W` and nano reports that the text was not found, press `Ctrl+C` to cancel the search and return to the blank editor. The message only means the setting was not already in this file.
 
-> [!TIP]
-> To search in nano, press `Ctrl+W`, type the search term, and hit `Enter`.
+These settings reject root SSH login and disable SSH password and keyboard-interactive authentication. Public-key authentication remains enabled by default in OpenSSH; it is stated explicitly here so the intended access method is clear:
 
 ```text
 PermitRootLogin no
